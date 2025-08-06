@@ -103,12 +103,10 @@ namespace NmarketTestTask.Parsers
             return houses;
         }
 
-        /// <summary>
-        /// Вспомогательный метод для извлечения всех цифр из строки.
-        /// Удаляет все символы, кроме '0'–'9'.
-        /// </summary>
-        /// <param name="input">Входная строка с любыми символами.</param>
-        /// <returns>Строка, состоящая только из цифр.</returns>
+        
+        // Вспомогательный метод для извлечения всех цифр из строки.
+        // Удаляет все символы, кроме '0'–'9'.
+        
         private string ExtractDigits(string input)
         {
             var result = string.Empty;
