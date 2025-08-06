@@ -4,18 +4,14 @@ using NmarketTestTask.Models;                // Модели House и Flat
 
 namespace NmarketTestTask.Parsers
 {
-    
     // Парсер HTML-таблицы с данными о домах и квартирах.
-    // Поддерживает таблицы с тремя столбцами (Дом, Номер, Стоимость)
-    // и четырьмя столбцами (Дом, Номер, Площадь, Стоимость).
-    
-    public class HtmlParser : IParser
+    // Обрабатывает таблицы с тремя или четырьмя столбцами,
+    // но не сохраняет информацию о площади квартир.
+        public class HtmlParser : IParser
     {
-        
-        // Основной метод парсинга. 
-        // Загружает HTML-файл по указанному пути и возвращает список домов с квартирами.
-        
-        public IList<House> GetHouses(string path)
+        // Загружает HTML-файл и возвращает список домов с квартирами.
+        // Информация о площади на выходе отсутствует.
+                public IList<House> GetHouses(string path)
         {
             // Результирующий список домов
             var houses = new List<House>();
@@ -24,13 +20,13 @@ namespace NmarketTestTask.Parsers
             var doc = new HtmlDocument();
             doc.Load(path);
 
-            // Находим все строки таблицы (<tr>) любой вложенности в <table>
+            // Находим все строки таблицы (<tr>) внутри любых <table>
             var rows = doc.DocumentNode.SelectNodes("//table//tr");
-            // Если таблица не найдена или нет строк с данными — возвращаем пустой список
+            // Если таблица не найдена или не содержит строк данных — возвращаем пустой список
             if (rows == null || rows.Count < 2)
                 return houses;
 
-            // Пропускаем первую строку (обычно заголовок) и обрабатываем остальные
+            // Пропускаем первую строку (заголовок) и обрабатываем остальные
             for (int i = 1; i < rows.Count; i++)
             {
                 var row = rows[i];
@@ -43,26 +39,21 @@ namespace NmarketTestTask.Parsers
 
                 // Извлекаем и очищаем содержимое ячеек
                 var houseName = cells[0].InnerText.Trim();       // Название дома
-                var rawFlat = cells[1].InnerText.Trim();      // Номер квартиры в сыром виде (например, "Кв. 12")
+                var rawFlat = cells[1].InnerText.Trim();      // Номер квартиры (например, "Кв. 12")
 
-                // Если 4 столбца — третий это площадь, иначе — null
-                var area = cells.Count == 4
-                    ? cells[2].InnerText.Trim()
-                    : null;
-
-                // Если 4 столбца — цена в четвёртом, иначе — в третьем
+                // Если 4 столбца — цена во 4-м, иначе — в 3-м
                 var price = cells.Count == 4
                     ? cells[3].InnerText.Trim()
                     : cells[2].InnerText.Trim();
 
-                // Выделяем только цифры из строки rawFlat
+                // Выделяем только цифры из номера квартиры
                 string flatNumber = ExtractDigits(rawFlat);
 
                 // Пропускаем, если нет имени дома или номера квартиры
                 if (string.IsNullOrEmpty(houseName) || string.IsNullOrEmpty(flatNumber))
                     continue;
 
-                // Ищем уже созданный объект House с таким именем
+                // Пытаемся найти существующий объект House по имени
                 House house = null;
                 foreach (var h in houses)
                 {
@@ -73,7 +64,7 @@ namespace NmarketTestTask.Parsers
                     }
                 }
 
-                // Если дом не найден — создаём новый
+                // Если дом не найден — создаём новый и добавляем в список
                 if (house == null)
                 {
                     house = new House
@@ -84,16 +75,12 @@ namespace NmarketTestTask.Parsers
                     houses.Add(house);
                 }
 
-                // Создаём объект Flat и заполняем его свойства
+                // Создаём объект Flat без поля Area
                 var flat = new Flat
                 {
                     Number = flatNumber,
                     Price = price
                 };
-
-                // Если в таблице была площадь — сохраняем её
-                if (!string.IsNullOrEmpty(area))
-                    flat.Area = area;
 
                 // Добавляем квартиру в соответствующий дом
                 house.Flats.Add(flat);
@@ -105,9 +92,7 @@ namespace NmarketTestTask.Parsers
 
         
         // Вспомогательный метод для извлечения всех цифр из строки.
-        // Удаляет все символы, кроме '0'–'9'.
-        
-        private string ExtractDigits(string input)
+                private string ExtractDigits(string input)
         {
             var result = string.Empty;
 
